@@ -1,0 +1,57 @@
+# ========================
+# macOS
+# ========================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ========================
+# Xcode
+# ========================
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.moved-aside
+*.xcscheme~
+Pankey.xcodeproj/project.xcworkspace/xcuserdata/
+
+# ========================
+# Swift Package Manager
+# ========================
+.build/
+.swiftpm/
+# Local packages have no version — no Package.resolved needed for PankeyCore
+# Remote packages: commit Package.resolved when added
+
+# ========================
+# Credentials & secrets
+# ========================
+*.pem
+.env*
+!.env.example
+
+# ========================
+# Project-specific
+# ========================
+repomix-output.xml
+.serena/cache
+plans/**/*
+!plans/templates/*
+screenshots/*
+docs/screenshots/*
+logs.txt
+__pycache__/
+
+# CK meta
+prompt.md
+ck.md
+
+# Claude Code runtime
+/.claude/
+
+# Git worktrees (local dev only)
+worktrees/
+external/
+.opencode.backup/
+.gemini/settings.json
