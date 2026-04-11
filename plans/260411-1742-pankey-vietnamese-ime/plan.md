@@ -30,7 +30,7 @@ Build a native macOS Vietnamese IME (Input Method Editor) combining the best of 
 |-------|------|--------|
 | 1 | [Project Setup & Xcode Config](./phase-01-project-setup-xcode-config.md) | Complete |
 | 2 | [PankeyCore Vietnamese Engine](./phase-02-pankeycore-vietnamese-engine.md) | Complete |
-| 3 | [IMK Integration](./phase-03-imk-integration.md) | Pending |
+| 3 | [IMK Integration](./phase-03-imk-integration.md) | Complete |
 | 4 | [App Exclusion Feature](./phase-04-app-exclusion-feature.md) | Pending |
 | 5 | [Menu Bar & Settings UI](./phase-05-menu-bar-settings-ui.md) | Pending |
 | 6 | [Text Conversion Tool](./phase-06-text-conversion-tool.md) | Pending |

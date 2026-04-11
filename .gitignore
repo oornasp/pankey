@@ -50,6 +50,9 @@ ck.md
 # Claude Code runtime
 /.claude/
 
+# OpenCode IDE
+.opencode/
+
 # Git worktrees (local dev only)
 worktrees/
 external/

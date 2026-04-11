@@ -109,6 +109,9 @@ public struct VietEngine {
         if !active { reset() }
     }
 
+    /// Read-only access to current composing buffer — used by InputController.deactivateServer
+    public var currentPreview: String { state.unicodeBuffer }
+
     // MARK: - Unicode recomputation
 
     /// Rebuild `state.unicodeBuffer` from the current keystroke buffer + tone.

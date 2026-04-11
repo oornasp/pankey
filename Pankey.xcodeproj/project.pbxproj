@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B10000000000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* main.swift */; };
 		B10000000000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* AppDelegate.swift */; };
+		B10000000000000000000004 /* InputController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* InputController.swift */; };
 		B10000000000000000000003 /* PankeyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0C0000000000000000000001 /* PankeyCore */; };
 /* End PBXBuildFile section */
 
@@ -17,6 +18,7 @@
 		A10000000000000000000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000004 /* PankeyMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PankeyMac.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000006 /* InputController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputController.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* PankeyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PankeyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -45,6 +47,7 @@
 			children = (
 				A10000000000000000000001 /* main.swift */,
 				A10000000000000000000002 /* AppDelegate.swift */,
+				A10000000000000000000006 /* InputController.swift */,
 				A10000000000000000000003 /* Info.plist */,
 				A10000000000000000000004 /* PankeyMac.entitlements */,
 			);
@@ -135,6 +138,7 @@
 			files = (
 				B10000000000000000000001 /* main.swift in Sources */,
 				B10000000000000000000002 /* AppDelegate.swift in Sources */,
+				B10000000000000000000004 /* InputController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
