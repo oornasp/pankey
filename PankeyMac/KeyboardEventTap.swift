@@ -98,6 +98,13 @@ final class KeyboardEventTap {
     // MARK: - Event handler (called from C callback on each keyDown)
 
     func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+
+        // Re-enable tap if macOS disabled it (e.g. timeout)
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return Unmanaged.passRetained(event)
+        }
+
         // Pass through events we posted ourselves (prevents infinite loop)
         if event.getIntegerValueField(.eventSourceUserData) == kPankeyEventMarker {
             return Unmanaged.passRetained(event)
