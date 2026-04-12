@@ -32,7 +32,7 @@ Build a native macOS Vietnamese IME (Input Method Editor) combining the best of 
 | 2 | [PankeyCore Vietnamese Engine](./phase-02-pankeycore-vietnamese-engine.md) | Complete |
 | 3 | [IMK Integration](./phase-03-imk-integration.md) | Complete |
 | 4 | [App Exclusion Feature](./phase-04-app-exclusion-feature.md) | Complete |
-| 5 | [Menu Bar & Settings UI](./phase-05-menu-bar-settings-ui.md) | Pending |
+| 5 | [Menu Bar & Settings UI](./phase-05-menu-bar-settings-ui.md) | Complete |
 | 6 | [Text Conversion Tool](./phase-06-text-conversion-tool.md) | Pending |
 | 7 | [Unit & Integration Tests](./phase-07-unit-integration-tests.md) | Pending |
 | 8 | [Distribution & Release](./phase-08-distribution-release.md) | Deferred (no Developer ID cert yet) |

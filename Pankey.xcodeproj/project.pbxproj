@@ -11,6 +11,17 @@
 		B10000000000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* AppDelegate.swift */; };
 		B10000000000000000000004 /* InputController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* InputController.swift */; };
 		B10000000000000000000003 /* PankeyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0C0000000000000000000001 /* PankeyCore */; };
+		B10000000000000000000005 /* AppExclusionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007 /* AppExclusionManager.swift */; };
+		B10000000000000000000006 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* MenuBarController.swift */; };
+		B10000000000000000000007 /* PixelTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* PixelTheme.swift */; };
+		B10000000000000000000008 /* PixelButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000A /* PixelButtonStyle.swift */; };
+		B10000000000000000000009 /* PixelBorderModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* PixelBorderModifier.swift */; };
+		B1000000000000000000000A /* PixelToggleStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000C /* PixelToggleStyle.swift */; };
+		B1000000000000000000000B /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* GeneralSettingsView.swift */; };
+		B1000000000000000000000C /* ExclusionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000E /* ExclusionListView.swift */; };
+		B1000000000000000000000D /* ConvertToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* ConvertToolView.swift */; };
+		B1000000000000000000000E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* SettingsView.swift */; };
+		B1000000000000000000000F /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* SettingsWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +31,17 @@
 		A10000000000000000000004 /* PankeyMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PankeyMac.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000006 /* InputController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputController.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* PankeyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PankeyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000007 /* AppExclusionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppExclusionManager.swift; sourceTree = "<group>"; };
+		A10000000000000000000008 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		A10000000000000000000009 /* PixelTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelTheme.swift; sourceTree = "<group>"; };
+		A1000000000000000000000A /* PixelButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelButtonStyle.swift; sourceTree = "<group>"; };
+		A1000000000000000000000B /* PixelBorderModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBorderModifier.swift; sourceTree = "<group>"; };
+		A1000000000000000000000C /* PixelToggleStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelToggleStyle.swift; sourceTree = "<group>"; };
+		A1000000000000000000000D /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		A1000000000000000000000E /* ExclusionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExclusionListView.swift; sourceTree = "<group>"; };
+		A1000000000000000000000F /* ConvertToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertToolView.swift; sourceTree = "<group>"; };
+		A10000000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,10 +70,37 @@
 				A10000000000000000000001 /* main.swift */,
 				A10000000000000000000002 /* AppDelegate.swift */,
 				A10000000000000000000006 /* InputController.swift */,
+				A10000000000000000000007 /* AppExclusionManager.swift */,
+				A10000000000000000000008 /* MenuBarController.swift */,
+				C10000000000000000000004 /* Settings */,
 				A10000000000000000000003 /* Info.plist */,
 				A10000000000000000000004 /* PankeyMac.entitlements */,
 			);
 			path = PankeyMac;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000004 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000000D /* GeneralSettingsView.swift */,
+				A1000000000000000000000E /* ExclusionListView.swift */,
+				A1000000000000000000000F /* ConvertToolView.swift */,
+				A10000000000000000000010 /* SettingsView.swift */,
+				A10000000000000000000011 /* SettingsWindowController.swift */,
+				C10000000000000000000005 /* PixelUI */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000005 /* PixelUI */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000009 /* PixelTheme.swift */,
+				A1000000000000000000000A /* PixelButtonStyle.swift */,
+				A1000000000000000000000B /* PixelBorderModifier.swift */,
+				A1000000000000000000000C /* PixelToggleStyle.swift */,
+			);
+			path = PixelUI;
 			sourceTree = "<group>";
 		};
 		C10000000000000000000003 /* Products */ = {
@@ -139,6 +188,17 @@
 				B10000000000000000000001 /* main.swift in Sources */,
 				B10000000000000000000002 /* AppDelegate.swift in Sources */,
 				B10000000000000000000004 /* InputController.swift in Sources */,
+				B10000000000000000000005 /* AppExclusionManager.swift in Sources */,
+				B10000000000000000000006 /* MenuBarController.swift in Sources */,
+				B10000000000000000000007 /* PixelTheme.swift in Sources */,
+				B10000000000000000000008 /* PixelButtonStyle.swift in Sources */,
+				B10000000000000000000009 /* PixelBorderModifier.swift in Sources */,
+				B1000000000000000000000A /* PixelToggleStyle.swift in Sources */,
+				B1000000000000000000000B /* GeneralSettingsView.swift in Sources */,
+				B1000000000000000000000C /* ExclusionListView.swift in Sources */,
+				B1000000000000000000000D /* ConvertToolView.swift in Sources */,
+				B1000000000000000000000E /* SettingsView.swift in Sources */,
+				B1000000000000000000000F /* SettingsWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

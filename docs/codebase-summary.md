@@ -1,6 +1,6 @@
 # Codebase Summary — Pankey Vietnamese IME
 
-**Last updated:** 2026-04-12 | **Phase:** 4 (App Exclusion Complete)
+**Last updated:** 2026-04-12 | **Phase:** 5 (Menu Bar & Settings UI Complete)
 
 ---
 
@@ -20,9 +20,21 @@ Pankey/
 │       ├── TelesEngine.swift       # Telex-specific phonotactic rules
 │       └── VniEngine.swift         # VNI-specific phonotactic rules
 ├── PankeyMac/            # macOS app — InputMethodKit wrapper
-│   ├── AppDelegate.swift           # IMKServer init + app-exclusion callback
+│   ├── AppDelegate.swift           # IMKServer init, MenuBar setup (Phase 5)
+│   ├── MenuBarController.swift     # NSStatusItem "VI"/"EN" icon, dropdown menu (Phase 5)
+│   ├── InputController.swift       # IMKInputController → VietEngine bridge, hotkey toggle
 │   ├── AppExclusionManager.swift   # Per-app exclusion list (Phase 4)
-│   ├── InputController.swift       # IMKInputController → VietEngine bridge
+│   ├── Settings/                   # SwiftUI settings panel (Phase 5)
+│   │   ├── SettingsWindowController.swift  # NSPanel wrapper
+│   │   ├── SettingsView.swift              # Root tabbed container
+│   │   ├── GeneralSettingsView.swift       # VI/EN toggle, method picker, hotkey recorder
+│   │   ├── ExclusionListView.swift         # Per-app exclusion UI
+│   │   ├── ConvertToolView.swift           # Phase 6 placeholder
+│   │   └── PixelUI/                        # 8-bit pixel aesthetic components
+│   │       ├── PixelTheme.swift            # Color palette, typography, spacing
+│   │       ├── PixelButtonStyle.swift      # Primary/secondary/danger button styles
+│   │       ├── PixelBorderModifier.swift   # pixelBorder() view modifier
+│   │       └── PixelToggleStyle.swift      # Pixel on/off toggle
 │   ├── main.swift                  # Manual AppDelegate wiring (no @main)
 │   └── Info.plist                  # Input method registration
 └── Pankey.xcodeproj/    # Xcode project
@@ -80,27 +92,58 @@ Pankey/
 
 **Purpose:** Wire VietEngine into macOS InputMethodKit, providing system-wide Vietnamese typing.
 
-#### AppDelegate.swift
+#### AppDelegate.swift (Updated Phase 5)
 - **Responsibilities:**
   - Initialize `IMKServer` with connection name from Info.plist
-  - Store server as property (prevents deallocation)
-  - Register input method with macOS
-  - Set app to accessory mode (no dock icon, background agent behavior)
+  - Initialize `MenuBarController` for menu bar UI (Phase 5)
+  - Register UserDefaults defaults: `isVietnameseEnabled`, `inputMethod`
+  - Wire app-exclusion callback (no-op, for future use)
+  - Prevent app termination on last window close (background agent)
 
 - **Key Implementation:**
   ```swift
   @objc class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
+    private let menuBarController = MenuBarController()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-      guard let connectionName = Bundle.main.infoDictionary?["InputMethodConnectionName"] as? String else { ... }
-      server = IMKServer(name: connectionName, bundleIdentifier: Bundle.main.bundleIdentifier)
-      NSApp.setActivationPolicy(.accessory)
+      UserDefaults.standard.register(defaults: [
+        "isVietnameseEnabled": true,
+        "inputMethod": "telex"
+      ])
+      server = IMKServer(name: connectionName, bundleIdentifier: ...)
+      menuBarController.setup()
+      AppExclusionManager.shared.onAppChanged = { bundleID in ... }
+    }
+    
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool {
+      return false  // Keep running when Settings window closes
     }
   }
   ```
 
-#### AppExclusionManager.swift (NEW — Phase 4)
+#### MenuBarController.swift (NEW — Phase 5)
+- **Responsibilities:**
+  - Create NSStatusItem in menu bar with pixel-style "VI"/"EN" icon
+  - Build dropdown menu: Toggle VI/EN, Method picker (Telex/VNI), Settings, Quit
+  - Observe UserDefaults for live icon updates (VI ↔ EN)
+  - Open Settings window on "Settings…" action
+
+- **Key Features:**
+  - Icon uses Press Start 2P font (8-bit aesthetic) at 9pt
+  - Menu items tied to UserDefaults keys (`isVietnameseEnabled`, `inputMethod`)
+  - Non-blocking NotificationCenter observer (deregistered on deinit)
+
+- **Public API:**
+  ```swift
+  final class MenuBarController {
+    func setup()  // Called from AppDelegate.applicationDidFinishLaunching
+  }
+  ```
+
+---
+
+#### AppExclusionManager.swift (Phase 4)
 - **Responsibilities:**
   - Maintain exclusion list (`Set<String>`) in UserDefaults key `excludedBundleIDs`
   - Provide O(1) `isCurrentAppExcluded()` check via `NSWorkspace.frontmostApplication`
@@ -124,19 +167,29 @@ Pankey/
 
 ---
 
-#### InputController.swift (Phase 3, updated Phase 4)
+#### InputController.swift (Phase 3, updated Phase 5)
 - **Responsibilities:**
   - Subclass `IMKInputController` for key event interception
   - Route keystroke → VietEngine → marked text or commit
   - Handle marked text display (composition preview with underline)
+  - Detect hotkey combo (default Ctrl+Space) → toggle Vietnamese mode
+  - Check `isVietnameseEnabled` flag → passthrough all keys when disabled
   - Commit text on space/punctuation/modifiers
   - Manage session lifecycle (activateServer/deactivateServer)
   - Observe UserDefaults for live Telex↔VNI switching
 
 - **Key Entry Points:**
-  - `handle(_:client:) -> Bool`: Primary key event handler
+  - `handle(_:client:) -> Bool`: Primary key event handler (hotkey check first)
+  - `isToggleHotkey(_ event:) -> Bool`: Matches event against stored hotkey
+  - `toggleVietnamese()`: Flip `isVietnameseEnabled` and log
   - `activateServer()`: Reset engine state on focus gain
   - `deactivateServer()`: Commit pending composition on focus loss
+
+- **Hotkey Toggle (Phase 5):**
+  - Default: Ctrl+Space (stored in UserDefaults via HotkeyStore)
+  - Checked BEFORE all other key handling so it works in all modes
+  - Global-level: intercepts hotkey even in excluded apps
+  - Toggles `isVietnameseEnabled` → disables Vietnamese until hotkey pressed again
 
 - **Modifier Key Handling:**
   - Cmd, Ctrl, Option: pass through without intercepting (commit pending first)
@@ -150,8 +203,9 @@ Pankey/
   - Escape: commit pending, pass through
 
 - **UserDefaults Observation:**
-  - Watch `inputMethod` key in standard defaults
-  - On change: recreate VietEngine with new method, no restart needed
+  - Watch `inputMethod` key in standard defaults → recreate VietEngine on change
+  - Watch `isVietnameseEnabled` key via InputController.handle() check
+  - No app restart needed for live switching
 
 #### main.swift
 - **Responsibilities:**
@@ -166,6 +220,80 @@ Pankey/
   NSApplication.shared.run()
   ```
 
+#### SettingsWindowController.swift (NEW — Phase 5)
+- **Responsibilities:**
+  - Wrap SwiftUI SettingsView in NSPanel (420×340px)
+  - Window persists across open/close (isReleasedWhenClosed = false)
+  - Provide `showSettings()` to activate window and bring app to front
+
+- **Key Implementation:**
+  ```swift
+  final class SettingsWindowController: NSWindowController {
+    convenience init() {
+      let panel = NSPanel(
+        contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
+        styleMask: [.titled, .closable, .miniaturizable],
+        backing: .buffered, defer: false
+      )
+      panel.title = "Pankey Settings"
+      panel.contentViewController = NSHostingController(rootView: SettingsView())
+      panel.isReleasedWhenClosed = false
+      self.init(window: panel)
+    }
+  }
+  ```
+
+#### SettingsView.swift (NEW — Phase 5)
+- **Responsibilities:**
+  - Root container with custom pixel-style tab bar
+  - Switch between 3 tabs: GENERAL, EXCLUDED, CONVERT
+  - Apply PixelTheme styling to entire view
+
+- **Tab Structure:**
+  - **GENERAL** (GeneralSettingsView): VI/EN toggle, method picker, hotkey recorder
+  - **EXCLUDED** (ExclusionListView): Add/remove apps from exclusion list
+  - **CONVERT** (ConvertToolView): Placeholder for Phase 6 text conversion tool
+
+#### GeneralSettingsView.swift (NEW — Phase 5)
+- **Responsibilities:**
+  - VI/EN toggle using PixelToggleStyle
+  - Telex/VNI method picker (buttons)
+  - Hotkey recorder UI: label showing current hotkey, CHANGE/CANCEL button
+  - Display version info
+
+- **Hotkey Recorder:**
+  - Calls `NSEvent.addLocalMonitorForEvents(matching: .keyDown)` when "CHANGE" clicked
+  - Records keystroke → saves via `HotkeyStore.save(keyCode:modifiers:)`
+  - Updates label via `HotkeyStore.displayLabel()`
+  - Escape key cancels recording
+
+#### ExclusionListView.swift (NEW — Phase 5)
+- **Responsibilities:**
+  - Display list of excluded apps (from AppExclusionManager)
+  - Add current foremost app via AppExclusionManager.addFrontmostApp()
+  - Remove apps from list
+  - Observe AppExclusionManager changes for live UI updates
+
+#### ConvertToolView.swift (NEW — Phase 5)
+- **Responsibilities:** Placeholder stub for Phase 6 text conversion feature
+
+#### PixelUI/PixelTheme.swift (NEW — Phase 5)
+- **Provides:**
+  - Color palette: `background`, `surface`, `accent`, `text`, `textDim`, `danger`, `border`
+  - Typography: `pixelFont(size:)` → Press Start 2P custom font
+  - Spacing grid: 8px base unit
+  - Color hex initializer for Color(hex: "#1a1a2e")
+
+#### PixelUI/PixelButtonStyle.swift (NEW — Phase 5)
+- **Styles:** `.primary` (accent bg), `.secondary` (surface bg), `.danger` (red bg)
+- **Applies:** PixelTheme font, border, padding
+
+#### PixelUI/PixelBorderModifier.swift (NEW — Phase 5)
+- **Provides:** `.pixelBorder(color:)` view modifier for neon borders
+
+#### PixelUI/PixelToggleStyle.swift (NEW — Phase 5)
+- **Provides:** Toggle with pixel on/off appearance, accent color
+
 #### Info.plist
 - **Critical Settings:**
   - `InputMethodConnectionName`: Telex or VNI identifier (e.g., `com.petereaI.Pankey`)
@@ -176,12 +304,14 @@ Pankey/
 
 ## Data Flow
 
-### Key Event Pipeline
+### Key Event Pipeline (Phase 5)
 
 ```
 NSEvent (keystroke from OS)
   ↓
 InputController.handle(_:client:)
+  ├─ [Hotkey check] isToggleHotkey()? → toggleVietnamese(), return true ✓ (Phase 5)
+  ├─ [VI/EN check] isVietnameseEnabled? → if false, passthrough all keys
   ├─ [Exclusion check] AppExclusionManager.isCurrentAppExcluded()? → commitPending(), passthrough
   ├─ [Modifier check] Cmd/Ctrl/Option? → commitPending(), passthrough
   ├─ [Passthrough check] Escape/Arrows/F-keys? → commitPending(), passthrough
@@ -219,9 +349,36 @@ User changes input method in Settings UI (Phase 5)
   ↓ UserDefaults writes `inputMethod` key
   ↓ NotificationCenter broadcasts
   ↓ InputController observes
-  → switchInputMethod(to: .vni) or .telex
-  → engine = VietEngine(method: newMethod)
+  → syncInputMethod() → engine = VietEngine(method: newMethod)
   ↓ Next keystroke uses new method (no restart)
+```
+
+### Menu Bar & Settings UI (Phase 5)
+
+```
+AppDelegate.applicationDidFinishLaunching()
+  ↓ menuBarController.setup()
+  ├─ Create NSStatusItem in menu bar
+  ├─ Build menu: Toggle, Method picker, Settings, Quit
+  ├─ Register UserDefaults defaults
+  └─ Observe defaults changes → updateIcon()
+
+User clicks "VI" icon → dropdown menu appears
+  ├─ "Toggle VI/EN" → toggleInputMode() → flip isVietnameseEnabled
+  ├─ "Telex" / "VNI" → selectMethod() → write inputMethod key
+  └─ "Settings…" → openSettings() → SettingsWindowController.showSettings()
+
+SettingsWindowController.showSettings()
+  ↓ NSPanel(SettingsView) appears with 3 tabs
+  ├─ GENERAL: VI/EN toggle, Telex/VNI picker, hotkey recorder
+  ├─ EXCLUDED: per-app exclusion list
+  └─ CONVERT: placeholder for Phase 6
+
+User records hotkey in GeneralSettingsView
+  ↓ NSEvent.addLocalMonitorForEvents() captures next keystroke
+  ↓ HotkeyStore.save(keyCode, modifiers)
+  ↓ InputController.isToggleHotkey() matches future keystrokes
+  ↓ On match: toggleVietnamese() flips VI/EN mode
 ```
 
 ---
@@ -265,20 +422,23 @@ open ~/Library/Input\ Methods/PankeyMac.app
 - [x] Session lifecycle: activateServer/deactivateServer on focus change
 - [x] UserDefaults observation: live Telex↔VNI switching
 - [x] App exclusion: excluded apps pass all keys through, pending buffer committed on switch
+- [x] Phase 5 UI verified: Menu bar icon appears, Settings window opens, tabs functional
+- [x] Hotkey toggle: Ctrl+Space (default) toggles VI/EN mode globally
+- [x] VI/EN toggle: Menu bar icon updates, icon toggle in Settings works
+- [x] Input method picker: Telex/VNI switching via menu and Settings
+- [x] Hotkey recorder: captures and displays hotkey, Escape cancels
 
-Pending (Phase 5+):
-- [ ] Menu bar settings UI
-- [ ] Text conversion tool
+Pending (Phase 6+):
+- [ ] Text conversion tool UI
 - [ ] Comprehensive unit & integration tests
 
 ---
 
 ## Next Phase
 
-**Phase 5: Menu Bar & Settings UI**
-- Menu bar icon with Telex/VNI toggle and mode indicator
-- Settings window: exclusion list management, hotkey recorder (Ctrl+Space default), input method selector
-- 8-bit pixel retro aesthetic via SwiftUI + Press Start 2P font
+**Phase 6: Text Conversion Tool**
+- Placeholder ConvertToolView ready in Settings UI
+- Text conversion features (Telex overflow handling, etc.) deferred to v2
 
 ---
 
@@ -290,7 +450,7 @@ Pending (Phase 5+):
 | 2 | PankeyCore Vietnamese Engine | Complete | 2026-04-11 |
 | 3 | IMK Integration | Complete | 2026-04-11 |
 | 4 | App Exclusion Feature | Complete | 2026-04-12 |
-| 5 | Menu Bar & Settings UI | Pending | TBD |
+| 5 | Menu Bar & Settings UI | Complete | 2026-04-12 |
 | 6 | Text Conversion Tool | Pending | TBD |
 | 7 | Unit & Integration Tests | Pending | TBD |
 | 8 | Distribution & Release | Deferred | (no Developer ID yet) |
@@ -302,7 +462,8 @@ Pending (Phase 5+):
 - **Phase 8 deferred:** No Developer ID certificate yet; notarization skipped
 - **Marked text not supported:** Some apps (Terminal, SSH) don't support marked text; fallback to passthrough
 - **Backspace on committed text:** Standard backspace only; syllable-undo deferred to v2
-- **Hotkey toggle:** Planned for Phase 5 (default Ctrl+Space, configurable)
+- **Global hotkey:** Ctrl+Space works but may conflict with other apps; custom hotkey recording available in Settings
+- **Settings persistence:** All settings stored in UserDefaults; no iCloud sync or profile export
 
 ---
 

@@ -52,6 +52,15 @@ class InputController: IMKInputController {
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard let event = event, event.type == .keyDown else { return false }
 
+        // Toggle hotkey: check before everything else so it works in all modes
+        if isToggleHotkey(event) {
+            toggleVietnamese()
+            return true
+        }
+
+        // VI/EN mode: pass through all keys when Vietnamese is disabled
+        guard UserDefaults.standard.bool(forKey: "isVietnameseEnabled") else { return false }
+
         // App exclusion check — pass all keys through when frontmost app is excluded
         if AppExclusionManager.shared.isCurrentAppExcluded() {
             if let client = sender as? IMKTextInput {
@@ -177,6 +186,22 @@ class InputController: IMKInputController {
             commitPending(client: client)
         }
         engine.reset()
+    }
+
+    // MARK: - VI/EN toggle hotkey
+
+    private func isToggleHotkey(_ event: NSEvent) -> Bool {
+        let (storedKeyCode, storedMods) = HotkeyStore.load()
+        let eventMods = event.modifierFlags.intersection([.control, .option, .command, .shift])
+        let storedMods2 = storedMods.intersection([.control, .option, .command, .shift])
+        return event.keyCode == storedKeyCode && eventMods == storedMods2
+    }
+
+    private func toggleVietnamese() {
+        let key = "isVietnameseEnabled"
+        let current = UserDefaults.standard.bool(forKey: key)
+        UserDefaults.standard.set(!current, forKey: key)
+        NSLog("Pankey: Vietnamese toggled → \(!current)")
     }
 
     // MARK: - Settings sync
