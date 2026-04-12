@@ -13,39 +13,16 @@
     <key>CFBundleVersion</key>
     <string>1</string>
 
-    <!-- IME registration: connection name must match bundle ID -->
-    <key>InputMethodConnectionName</key>
-    <string>io.pankey.Pankey.inputmethod</string>
-
-    <!-- IME controller class name (unqualified — InputMethodKit resolves within bundle) -->
-    <key>InputMethodServerControllerClass</key>
-    <string>InputController</string>
-
-    <!-- Input mode descriptors -->
-    <key>ComponentInputModeDict</key>
-    <dict>
-        <key>io.pankey.Pankey.inputmethod.Telex</key>
-        <dict>
-            <key>IMKInputModeNameKey</key>
-            <string>Telex</string>
-            <key>IMKLanguageKey</key>
-            <string>vi</string>
-        </dict>
-        <key>io.pankey.Pankey.inputmethod.VNI</key>
-        <dict>
-            <key>IMKInputModeNameKey</key>
-            <string>VNI</string>
-            <key>IMKLanguageKey</key>
-            <string>vi</string>
-        </dict>
-    </dict>
-
-    <!-- Run as background agent (no Dock icon) -->
+    <!-- Run as background agent — no Dock icon, menu bar only -->
     <key>LSUIElement</key>
     <true/>
 
-    <!-- Pixel font bundle path -->
+    <!-- Pixel font bundled with app -->
     <key>ATSApplicationFontsPath</key>
     <string>PressStart2P-Regular.ttf</string>
+
+    <!-- Required usage description for Accessibility (CGEventTap) -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Pankey needs Accessibility access to intercept and convert keystrokes to Vietnamese.</string>
 </dict>
 </plist>

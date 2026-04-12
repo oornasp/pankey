@@ -116,11 +116,17 @@ public struct VietEngine {
 
     /// Rebuild `state.unicodeBuffer` from the current keystroke buffer + tone.
     private mutating func recomputeUnicode() {
-        let (onset, vowels, coda) = parseSyllable(state.keystrokeBuffer)
-        guard !vowels.isEmpty else {
+        let (onset, rawVowels, coda) = parseSyllable(state.keystrokeBuffer)
+        guard !rawVowels.isEmpty else {
             // No vowel yet — preview the raw buffer
             state.unicodeBuffer = state.keystrokeBuffer
             return
+        }
+
+        // Normalise "u" before "ơ" → "ư" (ươ diphthong typed as u + ow shorthand)
+        var vowels = rawVowels
+        for i in 0..<vowels.count - 1 where vowels[i] == "u" && vowels[i + 1] == "ơ" {
+            vowels[i] = "ư"
         }
 
         let toneIdx = tonePlacementIndex(in: vowels)
@@ -139,10 +145,17 @@ public struct VietEngine {
     /// Returns the index into `vowels` array where the tone mark should go.
     ///
     /// Precedence:
+    /// 0. ươ diphthong special case: ư before ơ → tone on ơ
     /// 1. Special diacritic vowels: ă â ê ô ơ ư
     /// 2. Single vowel: always index 0
     /// 3. Diphthong/triphthong: center vowel (last for diphthong, middle for triphthong)
     private func tonePlacementIndex(in vowels: [Character]) -> Int {
+        // Level 0: ươ diphthong — ư before ơ → tone goes on ơ
+        if let uIdx = vowels.firstIndex(of: "ư"),
+           let oIdx = vowels.firstIndex(of: "ơ"),
+           uIdx < oIdx {
+            return oIdx
+        }
         // Level 1: diacritic vowel takes the mark
         for (i, v) in vowels.enumerated() {
             if CharacterTable.specialVowels.contains(v) { return i }

@@ -15,7 +15,21 @@ let package = Package(
         .testTarget(
             name: "PankeyCoreTests",
             dependencies: ["PankeyCore"],
-            path: "Tests/PankeyCoreTests"
+            path: "Tests/PankeyCoreTests",
+            swiftSettings: [
+                // Swift Testing framework path (CommandLineTools, no Xcode required)
+                .unsafeFlags([
+                    "-F", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
+                ])
+            ],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
+                ])
+            ]
         )
     ]
 )

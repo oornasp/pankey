@@ -9,7 +9,8 @@
 /* Begin PBXBuildFile section */
 		B10000000000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* main.swift */; };
 		B10000000000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* AppDelegate.swift */; };
-		B10000000000000000000004 /* InputController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* InputController.swift */; };
+		B10000000000000000000004 /* KeyboardEventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* KeyboardEventTap.swift */; };
+		B10000000000000000000010 /* PressStart2P-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* PressStart2P-Regular.ttf */; };
 		B10000000000000000000003 /* PankeyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0C0000000000000000000001 /* PankeyCore */; };
 		B10000000000000000000005 /* AppExclusionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007 /* AppExclusionManager.swift */; };
 		B10000000000000000000006 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* MenuBarController.swift */; };
@@ -29,7 +30,7 @@
 		A10000000000000000000002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000004 /* PankeyMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PankeyMac.entitlements; sourceTree = "<group>"; };
-		A10000000000000000000006 /* InputController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputController.swift; sourceTree = "<group>"; };
+		A10000000000000000000006 /* KeyboardEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardEventTap.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* PankeyMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PankeyMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000007 /* AppExclusionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppExclusionManager.swift; sourceTree = "<group>"; };
 		A10000000000000000000008 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
@@ -42,6 +43,7 @@
 		A1000000000000000000000F /* ConvertToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertToolView.swift; sourceTree = "<group>"; };
 		A10000000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000011 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		A10000000000000000000012 /* PressStart2P-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PressStart2P-Regular.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,8 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000001 /* main.swift */,
+				A10000000000000000000012 /* PressStart2P-Regular.ttf */,
 				A10000000000000000000002 /* AppDelegate.swift */,
-				A10000000000000000000006 /* InputController.swift */,
+				A10000000000000000000006 /* KeyboardEventTap.swift */,
 				A10000000000000000000007 /* AppExclusionManager.swift */,
 				A10000000000000000000008 /* MenuBarController.swift */,
 				C10000000000000000000004 /* Settings */,
@@ -175,6 +178,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B10000000000000000000010 /* PressStart2P-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -187,7 +191,7 @@
 			files = (
 				B10000000000000000000001 /* main.swift in Sources */,
 				B10000000000000000000002 /* AppDelegate.swift in Sources */,
-				B10000000000000000000004 /* InputController.swift in Sources */,
+				B10000000000000000000004 /* KeyboardEventTap.swift in Sources */,
 				B10000000000000000000005 /* AppExclusionManager.swift in Sources */,
 				B10000000000000000000006 /* MenuBarController.swift in Sources */,
 				B10000000000000000000007 /* PixelTheme.swift in Sources */,
@@ -268,7 +272,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.pankey.Pankey.inputmethod;
+				PRODUCT_BUNDLE_IDENTIFIER = io.pankey.Pankey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
@@ -291,7 +295,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.pankey.Pankey.inputmethod;
+				PRODUCT_BUNDLE_IDENTIFIER = io.pankey.Pankey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;

@@ -1,10 +1,11 @@
-import XCTest
+// PankeyCoreTests.swift — Entry point; real tests are in the individual test files.
+import Testing
 @testable import PankeyCore
 
-// Tests populated in Phase 7
-final class PankeyCoreTests: XCTestCase {
-    func testPlaceholder() {
-        // Phase 7 will add real tests
-        XCTAssertTrue(true)
+@Suite("PankeyCore")
+struct PankeyCoreTests {
+    @Test func placeholder() {
+        // Minimal; see CharacterTableTests, TelexProcessorTests, etc.
+        #expect(Bool(true))
     }
 }

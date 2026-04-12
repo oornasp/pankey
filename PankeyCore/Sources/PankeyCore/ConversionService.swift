@@ -53,24 +53,30 @@ public struct ConversionService {
     // MARK: - Unicode → Telex
 
     /// Convert NFC Unicode Vietnamese to its Telex-encoded representation.
+    ///
+    /// Uses Unicode scalar iteration over the NFD form so combining diacritical marks
+    /// (U+0300–U+036F) appear as separate scalars and can be mapped to Telex keys.
+    /// Swift's Character/grapheme-cluster iteration would bundle the marks with their
+    /// base character and prevent this mapping.
     public static func unicodeToTelex(_ text: String) -> String {
         let nfd = text.decomposedStringWithCanonicalMapping
+        let scalars = Array(nfd.unicodeScalars)
         var result = ""
-        var idx = nfd.startIndex
+        var i = 0
 
-        while idx < nfd.endIndex {
-            let ch = nfd[idx]
-            idx = nfd.index(after: idx)
+        while i < scalars.count {
+            let baseScalar = scalars[i]
+            i += 1
+            let baseChar = Character(baseScalar)
 
-            // Collect combining marks following this base character
+            // Collect combining diacritical marks (U+0300–U+036F) that follow
             var tone: Int? = nil
             var diacriticKind: DiacriticKind? = nil
 
-            while idx < nfd.endIndex {
-                let scalar = nfd[idx].unicodeScalars.first!.value
-                // Combining diacritical marks: U+0300–U+036F
-                guard scalar >= 0x0300 && scalar <= 0x036F else { break }
-                switch scalar {
+            while i < scalars.count {
+                let val = scalars[i].value
+                guard val >= 0x0300 && val <= 0x036F else { break }
+                switch val {
                 case 0x0300: tone = 1           // grave  → huyền (f)
                 case 0x0301: tone = 2           // acute  → sắc   (s)
                 case 0x0309: tone = 3           // hook   → hỏi   (r)
@@ -81,10 +87,10 @@ public struct ConversionService {
                 case 0x031B: diacriticKind = .horn        // ơ ư
                 default: break
                 }
-                idx = nfd.index(after: idx)
+                i += 1
             }
 
-            result += telexSequence(for: ch, tone: tone, diacriticKind: diacriticKind)
+            result += telexSequence(for: baseChar, tone: tone, diacriticKind: diacriticKind)
         }
         return result
     }
@@ -105,8 +111,8 @@ public struct ConversionService {
 
         for ch in word {
             switch engine.handleKey(ch) {
-            case .composing(let preview):
-                output = preview          // keep updating candidate
+            case .composing:
+                break  // discard preview; committed text arrives via .commit
             case .commit(let text, _):
                 output += text
             case .passthrough:
@@ -114,7 +120,7 @@ public struct ConversionService {
             }
         }
 
-        // Flush residual buffer with a space trigger
+        // Flush residual composition buffer with a space trigger
         switch engine.handleKey(" ") {
         case .commit(let text, _): output += text
         default: break
@@ -123,7 +129,11 @@ public struct ConversionService {
         return output
     }
 
-    /// Split `text` on whitespace, convert each token, rejoin preserving separators.
+    /// Split `text` on whitespace/punctuation, convert each word token, rejoin preserving separators.
+    ///
+    /// In VNI mode, digits 1–9 are part of the encoding (diacritics and tones) and must
+    /// NOT be treated as word delimiters — they are passed through to the engine.
+    /// In Telex mode, digits are not encoding characters, so they act as delimiters.
     private static func processWordByWord(_ text: String, method: InputMethod) -> String {
         guard !text.isEmpty else { return "" }
 
@@ -131,7 +141,9 @@ public struct ConversionService {
         var currentWord = ""
 
         for ch in text {
-            if ch.isWhitespace || ch.isPunctuation || ch.isSymbol || ch.isNumber {
+            let isDelimiter = ch.isWhitespace || ch.isPunctuation || ch.isSymbol ||
+                              (ch.isNumber && method != .vni)
+            if isDelimiter {
                 if !currentWord.isEmpty {
                     result += flushWord(currentWord, method: method)
                     currentWord = ""

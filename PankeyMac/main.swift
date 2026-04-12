@@ -1,5 +1,5 @@
-// main.swift — Manual NSApplication entry point for Pankey IME
-// Must NOT use @main — input methods require manual NSApplication setup
+// main.swift — Manual NSApplication entry point for Pankey
+// Must NOT use @main — manual bootstrap required to set delegate before run()
 import Cocoa
 
 let delegate = AppDelegate()

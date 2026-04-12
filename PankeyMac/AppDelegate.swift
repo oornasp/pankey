@@ -1,40 +1,45 @@
-// AppDelegate.swift — IMKServer bootstrap for Pankey input method
+// AppDelegate.swift — Application bootstrap for Pankey standalone app
+// Uses CGEventTap (via KeyboardEventTap) instead of InputMethodKit
 import Cocoa
-import InputMethodKit
 
 @objc class AppDelegate: NSObject, NSApplicationDelegate {
 
-    // MUST be stored properties — local vars are deallocated immediately
-    var server: IMKServer?
     private let menuBarController = MenuBarController()
+    private let keyboardTap = KeyboardEventTap()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Register defaults so UserDefaults.bool(forKey:) returns correct value before first write
         UserDefaults.standard.register(defaults: [
             "isVietnameseEnabled": true,
             "inputMethod": "telex",
         ])
 
-        guard let connectionName = Bundle.main.infoDictionary?["InputMethodConnectionName"] as? String else {
-            NSLog("Pankey ERROR: InputMethodConnectionName missing from Info.plist")
-            NSApplication.shared.terminate(nil)
-            return
-        }
-
-        server = IMKServer(name: connectionName, bundleIdentifier: Bundle.main.bundleIdentifier)
-        NSLog("Pankey: IMKServer initialized — \(connectionName)")
-
         menuBarController.setup()
 
-        // App exclusion: reset engine on app switch (InputController handles its own reset
-        // via activateServer/deactivateServer; this callback is available for future use)
         AppExclusionManager.shared.onAppChanged = { bundleID in
             NSLog("Pankey: app changed → \(bundleID ?? "unknown")")
         }
+
+        requestAccessibilityAndStart()
     }
 
-    // Input methods are background agents — never exit when windows close
-    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool {
-        return false
+    // MARK: - Accessibility permission
+
+    /// Request Accessibility permission (required for CGEventTap).
+    /// macOS shows a one-time system prompt; polls every second until granted.
+    private func requestAccessibilityAndStart() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        if AXIsProcessTrustedWithOptions(options) {
+            keyboardTap.start()
+        } else {
+            // User has not granted yet — re-check after a short delay.
+            // The system prompt is already shown; this loop handles the case where
+            // the user grants permission in System Settings without relaunching the app.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.requestAccessibilityAndStart()
+            }
+        }
     }
+
+    // Standalone menu-bar app — never quit when windows close
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
 }
