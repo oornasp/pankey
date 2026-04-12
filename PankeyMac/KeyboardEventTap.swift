@@ -34,6 +34,9 @@ final class KeyboardEventTap {
     // don't intercept our own backspace / unicode events in the tap callback.
     private var isFlushing = false
 
+    // Tracks peak modifier combination between full-releases (union prevents early-release erasure)
+    private var modifierPeak: NSEvent.ModifierFlags = []
+
     private var defaultsObserver: NSObjectProtocol?
 
     init() {
@@ -50,7 +53,10 @@ final class KeyboardEventTap {
     // MARK: - Lifecycle
 
     func start() {
-        let eventMask: CGEventMask = 1 << CGEventType.keyDown.rawValue
+        // Explicit UInt64 cast to guarantee flagsChanged bit is set correctly
+        let keyDownBit    = CGEventMask(1) << CGEventType.keyDown.rawValue
+        let flagsChangedBit = CGEventMask(1) << CGEventType.flagsChanged.rawValue
+        let eventMask = keyDownBit | flagsChangedBit
 
         // The callback must be a C function pointer; bridge to self via userInfo opaque pointer
         let tap = CGEvent.tapCreate(
@@ -96,16 +102,27 @@ final class KeyboardEventTap {
         // While posting replacement events, let everything through
         if isFlushing { return Unmanaged.passRetained(event) }
 
+        // Modifier-only toggle hotkey: track peak modifier combination via flagsChanged.
+        // CGEventTap with Accessibility permission is the single authoritative handler —
+        // no NSEvent global monitor needed (avoids Input Monitoring requirement + double-fire).
+        if type == .flagsChanged {
+            let rawMods = UInt(event.flags.rawValue)
+            let currentMods = NSEvent.ModifierFlags(rawValue: rawMods).intersection([.control, .option, .command, .shift])
+            if currentMods.isEmpty {
+                let (_, storedMods) = HotkeyStore.load()
+                let targetMods = storedMods.intersection([.control, .option, .command, .shift])
+                if !modifierPeak.isEmpty && modifierPeak == targetMods { toggleVietnamese() }
+                modifierPeak = []
+            } else {
+                modifierPeak = modifierPeak.union(currentMods)
+            }
+            return Unmanaged.passRetained(event)
+        }
+
         guard type == .keyDown else { return Unmanaged.passRetained(event) }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-
-        // --- Toggle hotkey: highest priority, works in all modes ---
-        if isToggleHotkey(event) {
-            toggleVietnamese()
-            return nil   // consume event
-        }
 
         // --- Vietnamese mode off: pass all keys through ---
         guard UserDefaults.standard.bool(forKey: "isVietnameseEnabled") else {
@@ -119,7 +136,10 @@ final class KeyboardEventTap {
         }
 
         // --- Modifier combos (Cmd/Ctrl/Opt): flush and pass through ---
+        // Also clear modifierPeak so releasing the modifier afterward does NOT trigger the toggle hotkey.
+        // Without this, CMD+C, CTRL+Z, etc. would accidentally fire the toggle on modifier release.
         if flags.contains(.maskCommand) || flags.contains(.maskControl) || flags.contains(.maskAlternate) {
+            modifierPeak = []
             resetComposition()
             return Unmanaged.passRetained(event)
         }
@@ -244,15 +264,6 @@ final class KeyboardEventTap {
     }
 
     // MARK: - VI/EN toggle
-
-    private func isToggleHotkey(_ event: CGEvent) -> Bool {
-        let (storedKeyCode, storedMods) = HotkeyStore.load()
-        let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        let rawMods = UInt(event.flags.rawValue)
-        let eventMods = NSEvent.ModifierFlags(rawValue: rawMods).intersection([.control, .option, .command, .shift])
-        let storedMods2 = storedMods.intersection([.control, .option, .command, .shift])
-        return keyCode == storedKeyCode && eventMods == storedMods2
-    }
 
     private func toggleVietnamese() {
         let key = "isVietnameseEnabled"

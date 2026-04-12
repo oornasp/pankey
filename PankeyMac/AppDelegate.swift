@@ -11,6 +11,9 @@ import Cocoa
         UserDefaults.standard.register(defaults: [
             "isVietnameseEnabled": true,
             "inputMethod": "telex",
+            // Default toggle hotkey: CTRL only (0x40000 = NSEvent.ModifierFlags.control)
+            "toggleHotkeyModifiers": Int(NSEvent.ModifierFlags.control.rawValue),
+            "toggleHotkeyKeyCode": Int(HotkeyStore.modifierOnlyKeyCode),
         ])
 
         menuBarController.setup()
