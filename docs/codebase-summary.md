@@ -1,6 +1,6 @@
 # Codebase Summary — Pankey Vietnamese IME
 
-**Last updated:** 2026-04-11 | **Phase:** 3 (IMK Integration Complete)
+**Last updated:** 2026-04-12 | **Phase:** 4 (App Exclusion Complete)
 
 ---
 
@@ -20,7 +20,8 @@ Pankey/
 │       ├── TelesEngine.swift       # Telex-specific phonotactic rules
 │       └── VniEngine.swift         # VNI-specific phonotactic rules
 ├── PankeyMac/            # macOS app — InputMethodKit wrapper
-│   ├── AppDelegate.swift           # IMKServer initialization
+│   ├── AppDelegate.swift           # IMKServer init + app-exclusion callback
+│   ├── AppExclusionManager.swift   # Per-app exclusion list (Phase 4)
 │   ├── InputController.swift       # IMKInputController → VietEngine bridge
 │   ├── main.swift                  # Manual AppDelegate wiring (no @main)
 │   └── Info.plist                  # Input method registration
@@ -99,7 +100,31 @@ Pankey/
   }
   ```
 
-#### InputController.swift (NEW — Phase 3)
+#### AppExclusionManager.swift (NEW — Phase 4)
+- **Responsibilities:**
+  - Maintain exclusion list (`Set<String>`) in UserDefaults key `excludedBundleIDs`
+  - Provide O(1) `isCurrentAppExcluded()` check via `NSWorkspace.frontmostApplication`
+  - Observe `NSWorkspace.didActivateApplicationNotification` → `onAppChanged` callback
+  - Default exclusion list: Terminal, Xcode, VS Code, iTerm2, Sublime, IntelliJ, Kitty
+  - Settings UI helpers: `addFrontmostApp()`, `frontmostAppInfo()` for Phase 5
+
+- **Public API:**
+  ```swift
+  final class AppExclusionManager {
+    static let shared: AppExclusionManager
+    func isCurrentAppExcluded() -> Bool    // O(1) — called on every key event
+    func add(bundleID: String)
+    func remove(bundleID: String)
+    func excludedBundleIDs() -> [String]
+    func addFrontmostApp() -> String?      // For Settings UI
+    func frontmostAppInfo() -> (name: String, bundleID: String)?
+    var onAppChanged: ((String?) -> Void)?
+  }
+  ```
+
+---
+
+#### InputController.swift (Phase 3, updated Phase 4)
 - **Responsibilities:**
   - Subclass `IMKInputController` for key event interception
   - Route keystroke → VietEngine → marked text or commit
@@ -157,6 +182,7 @@ Pankey/
 NSEvent (keystroke from OS)
   ↓
 InputController.handle(_:client:)
+  ├─ [Exclusion check] AppExclusionManager.isCurrentAppExcluded()? → commitPending(), passthrough
   ├─ [Modifier check] Cmd/Ctrl/Option? → commitPending(), passthrough
   ├─ [Passthrough check] Escape/Arrows/F-keys? → commitPending(), passthrough
   └─ [Composition] Regular key
@@ -238,9 +264,9 @@ open ~/Library/Input\ Methods/PankeyMac.app
 - [x] Uppercase detection: Shift+key, Caps Lock support
 - [x] Session lifecycle: activateServer/deactivateServer on focus change
 - [x] UserDefaults observation: live Telex↔VNI switching
+- [x] App exclusion: excluded apps pass all keys through, pending buffer committed on switch
 
-Pending (Phase 4+):
-- [ ] App exclusion feature
+Pending (Phase 5+):
 - [ ] Menu bar settings UI
 - [ ] Text conversion tool
 - [ ] Comprehensive unit & integration tests
@@ -249,10 +275,10 @@ Pending (Phase 4+):
 
 ## Next Phase
 
-**Phase 4: App Exclusion Feature**
-- Implement per-app exclusion list (e.g., disable in Xcode, Terminal)
-- Settings file: `~/.pankey/excluded-apps.json`
-- Check bundle identifier on focus, skip IME if excluded
+**Phase 5: Menu Bar & Settings UI**
+- Menu bar icon with Telex/VNI toggle and mode indicator
+- Settings window: exclusion list management, hotkey recorder (Ctrl+Space default), input method selector
+- 8-bit pixel retro aesthetic via SwiftUI + Press Start 2P font
 
 ---
 
@@ -263,7 +289,7 @@ Pending (Phase 4+):
 | 1 | Project Setup & Xcode Config | Complete | 2026-04-11 |
 | 2 | PankeyCore Vietnamese Engine | Complete | 2026-04-11 |
 | 3 | IMK Integration | Complete | 2026-04-11 |
-| 4 | App Exclusion Feature | Pending | Next |
+| 4 | App Exclusion Feature | Complete | 2026-04-12 |
 | 5 | Menu Bar & Settings UI | Pending | TBD |
 | 6 | Text Conversion Tool | Pending | TBD |
 | 7 | Unit & Integration Tests | Pending | TBD |

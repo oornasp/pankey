@@ -51,6 +51,15 @@ class InputController: IMKInputController {
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard let event = event, event.type == .keyDown else { return false }
+
+        // App exclusion check — pass all keys through when frontmost app is excluded
+        if AppExclusionManager.shared.isCurrentAppExcluded() {
+            if let client = sender as? IMKTextInput {
+                commitPending(client: client)
+            }
+            return false
+        }
+
         guard let client = sender as? IMKTextInput else {
             NSLog("Pankey: client does not conform to IMKTextInput")
             return false

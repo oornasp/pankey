@@ -16,6 +16,12 @@ import InputMethodKit
 
         server = IMKServer(name: connectionName, bundleIdentifier: Bundle.main.bundleIdentifier)
         NSLog("Pankey: IMKServer initialized — \(connectionName)")
+
+        // App exclusion: reset engine on app switch (InputController handles its own reset
+        // via activateServer/deactivateServer; this callback is available for future use)
+        AppExclusionManager.shared.onAppChanged = { bundleID in
+            NSLog("Pankey: app changed → \(bundleID ?? "unknown")")
+        }
     }
 
     // Input methods are background agents — never exit when windows close
