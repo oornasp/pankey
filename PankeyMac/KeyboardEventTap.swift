@@ -27,6 +27,10 @@ final class KeyboardEventTap {
     // Used to know how many backspaces to send when committing Vietnamese text.
     private var rawCharsInBuffer: Int = 0
 
+    // True whenever the engine has returned .composing at least once since last reset.
+    // Used to suppress raw keystrokes and show Unicode preview immediately instead.
+    private var isComposing: Bool = false
+
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
@@ -159,16 +163,38 @@ final class KeyboardEventTap {
 
         let isUppercase = flags.contains(.maskShift) || flags.contains(.maskAlphaShift)
 
-        // --- Backspace during composition: let it through and update engine ---
+        // --- Backspace during composition: consume it, recompute engine state ---
         if keyCode == KeyCode.delete {
             if rawCharsInBuffer > 0 {
                 rawCharsInBuffer -= 1
-                _ = engine.handleKey("\u{08}", isUppercase: isUppercase)
-                // Let the backspace through to erase the last raw char in the text field
-                return Unmanaged.passRetained(event)
+                let nextResult = engine.handleKey("\u{08}", isUppercase: isUppercase)
+                switch nextResult {
+                case .composing(let preview):
+                    // Engine still has chars: delete old preview, post new preview
+                    isFlushing = true
+                    postBackspaces(count: rawCharsInBuffer + 1)   // +1 = erase old preview char
+                    postUnicodeText(preview)
+                    rawCharsInBuffer = preview.count
+                    isFlushing = false
+                    return nil   // suppress backspace
+                case .commit(let text, _):
+                    // Buffer emptied by backspace
+                    isFlushing = true
+                    postBackspaces(count: rawCharsInBuffer + 1)
+                    postUnicodeText(text)
+                    rawCharsInBuffer = 0
+                    isComposing = false
+                    isFlushing = false
+                    return nil
+                case .passthrough:
+                    isComposing = false
+                    rawCharsInBuffer = 0
+                    return Unmanaged.passRetained(event)
+                }
             }
             // Nothing in our buffer — let system handle backspace normally
             engine.reset()
+            isComposing = false
             return Unmanaged.passRetained(event)
         }
 
@@ -184,10 +210,16 @@ final class KeyboardEventTap {
         let result = engine.handleKey(key, isUppercase: isUppercase)
 
         switch result {
-        case .composing:
-            // Let the raw key through; user sees it in the text field while composing
-            rawCharsInBuffer += 1
-            return Unmanaged.passRetained(event)
+        case .composing(let preview):
+            // Intercept the raw key: delete it, post Unicode preview immediately.
+            // This gives the user live feedback — việ instead of vieejt.
+            isComposing = true
+            isFlushing = true
+            postBackspaces(count: rawCharsInBuffer)
+            postUnicodeText(preview)
+            rawCharsInBuffer = preview.count
+            isFlushing = false
+            return nil   // suppress raw key event
 
         case .commit(let text, let remainder):
             // Suppress the triggering key; replace raw composition with Vietnamese text
@@ -230,6 +262,7 @@ final class KeyboardEventTap {
     private func resetComposition() {
         engine.reset()
         rawCharsInBuffer = 0
+        isComposing = false
     }
 
     // MARK: - Post helpers

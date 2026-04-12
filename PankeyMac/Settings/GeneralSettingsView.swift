@@ -1,12 +1,12 @@
-// GeneralSettingsView.swift — settings tab: VI/EN toggle, input method picker, hotkey recorder
+// GeneralSettingsView.swift — settings tab: VI/EN toggle, input method picker, hotkey modifier picker
 import SwiftUI
 
 struct GeneralSettingsView: View {
     @AppStorage("isVietnameseEnabled") private var isEnabled = true
     @AppStorage("inputMethod") private var inputMethod = "telex"
-    @State private var isRecordingHotkey = false
-    @State private var hotkeyLabel = HotkeyStore.displayLabel()
-    @State private var hotkeyMonitor: Any?
+    @State private var selectedMods: NSEvent.ModifierFlags = {
+        HotkeyStore.load().modifiers.intersection([.control, .option, .command, .shift])
+    }()
 
     var body: some View {
         VStack(alignment: .leading, spacing: PixelTheme.spacing * 2) {
@@ -35,24 +35,22 @@ struct GeneralSettingsView: View {
                 }
             }
 
-            // Toggle hotkey recorder
+            // Toggle hotkey modifier picker — select any combo of CMD / OPT / CTRL / SHIFT
             VStack(alignment: .leading, spacing: PixelTheme.spacing) {
                 Text("TOGGLE HOTKEY")
                     .font(PixelTheme.pixelFont(size: 8))
                     .foregroundColor(PixelTheme.textDim)
                 HStack(spacing: PixelTheme.spacing) {
-                    Text(isRecordingHotkey ? "PRESS KEY..." : hotkeyLabel)
-                        .font(PixelTheme.pixelFont(size: 8))
-                        .foregroundColor(isRecordingHotkey ? PixelTheme.accent : PixelTheme.text)
-                        .frame(minWidth: 100)
-                        .padding(.horizontal, PixelTheme.spacing)
-                        .padding(.vertical, 6)
-                        .pixelBorder(color: isRecordingHotkey ? PixelTheme.accent : PixelTheme.border)
-                    Button(isRecordingHotkey ? "CANCEL" : "CHANGE") {
-                        isRecordingHotkey ? cancelRecording() : startRecording()
+                    ForEach(Self.modifierOptions, id: \.label) { opt in
+                        Button(opt.label) { toggleModifier(opt.flag) }
+                            .buttonStyle(PixelButtonStyle(
+                                variant: selectedMods.contains(opt.flag) ? .primary : .secondary
+                            ))
                     }
-                    .buttonStyle(PixelButtonStyle(variant: isRecordingHotkey ? .danger : .secondary))
                 }
+                Text(selectedMods.isEmpty ? "SELECT AT LEAST ONE KEY" : hotkeyPreview)
+                    .font(PixelTheme.pixelFont(size: 7))
+                    .foregroundColor(selectedMods.isEmpty ? PixelTheme.accent : PixelTheme.textDim)
             }
 
             Spacer()
@@ -63,32 +61,41 @@ struct GeneralSettingsView: View {
         }
         .padding(PixelTheme.spacing * 2)
         .background(PixelTheme.background)
-        .onDisappear { cancelRecording() }
     }
 
-    // MARK: - Hotkey recording
+    // MARK: - Modifier picker
 
-    private func startRecording() {
-        isRecordingHotkey = true
-        hotkeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Escape cancels recording
-            if event.keyCode == 53 {
-                self.cancelRecording()
-                return nil
-            }
-            HotkeyStore.save(keyCode: event.keyCode, modifiers: event.modifierFlags)
-            self.hotkeyLabel = HotkeyStore.displayLabel()
-            self.cancelRecording()
-            return nil  // consume the event
-        }
+    private struct ModifierOption {
+        let label: String
+        let flag: NSEvent.ModifierFlags
     }
 
-    private func cancelRecording() {
-        if let monitor = hotkeyMonitor {
-            NSEvent.removeMonitor(monitor)
-            hotkeyMonitor = nil
+    private static let modifierOptions: [ModifierOption] = [
+        .init(label: "CMD",   flag: .command),
+        .init(label: "OPT",   flag: .option),
+        .init(label: "CTRL",  flag: .control),
+        .init(label: "SHIFT", flag: .shift),
+    ]
+
+    private var hotkeyPreview: String {
+        var parts: [String] = []
+        if selectedMods.contains(.command) { parts.append("CMD") }
+        if selectedMods.contains(.option)  { parts.append("OPT") }
+        if selectedMods.contains(.control) { parts.append("CTRL") }
+        if selectedMods.contains(.shift)   { parts.append("SHIFT") }
+        return parts.joined(separator: " + ")
+    }
+
+    private func toggleModifier(_ flag: NSEvent.ModifierFlags) {
+        var mods = selectedMods
+        if mods.contains(flag) {
+            mods.remove(flag)
+        } else {
+            mods.insert(flag)
         }
-        isRecordingHotkey = false
+        guard !mods.isEmpty else { return } // require at least one modifier
+        selectedMods = mods
+        HotkeyStore.save(keyCode: HotkeyStore.modifierOnlyKeyCode, modifiers: mods)
     }
 }
 
@@ -98,9 +105,10 @@ enum HotkeyStore {
     private static let keyCodeKey   = "toggleHotkeyKeyCode"
     private static let modifiersKey = "toggleHotkeyModifiers"
 
-    // Default: Ctrl+Space (keyCode 49, NSEvent.ModifierFlags.control)
-    static let defaultKeyCode: UInt16 = 49
+    // Default: CTRL only (modifier-only)
     static let defaultModifiers: NSEvent.ModifierFlags = .control
+    // All modifier-only hotkeys use this sentinel keyCode
+    static let modifierOnlyKeyCode: UInt16 = 0xFFFF
 
     static func save(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) {
         let cleaned = modifiers.intersection([.control, .option, .command, .shift])
@@ -109,36 +117,11 @@ enum HotkeyStore {
     }
 
     static func load() -> (keyCode: UInt16, modifiers: NSEvent.ModifierFlags) {
-        let kc = UserDefaults.standard.object(forKey: keyCodeKey)
-            .flatMap { $0 as? Int }
-            .map { UInt16($0) } ?? defaultKeyCode
+        // Hotkeys are always modifier-only now — ignore any legacy keyCode in UserDefaults
         let rawMods = UserDefaults.standard.object(forKey: modifiersKey)
             .flatMap { $0 as? Int }
             .map { UInt(bitPattern: $0) }
         let mods = rawMods.map { NSEvent.ModifierFlags(rawValue: $0) } ?? defaultModifiers
-        return (keyCode: kc, modifiers: mods)
-    }
-
-    static func displayLabel() -> String {
-        let (kc, mods) = load()
-        var parts: [String] = []
-        if mods.contains(.control) { parts.append("^") }
-        if mods.contains(.option)  { parts.append("~") }
-        if mods.contains(.shift)   { parts.append("+") }
-        if mods.contains(.command) { parts.append("*") }
-        parts.append(keyLabel(for: kc))
-        return parts.joined(separator: "")
-    }
-
-    private static func keyLabel(for keyCode: UInt16) -> String {
-        switch keyCode {
-        case 49: return "Space"
-        case 36: return "Return"
-        case 48: return "Tab"
-        case 51: return "Delete"
-        default:
-            // Use CGEventKeyboardGetUnicodeString equivalent via NSEvent character lookup
-            return "Key(\(keyCode))"
-        }
+        return (keyCode: modifierOnlyKeyCode, modifiers: mods)
     }
 }
