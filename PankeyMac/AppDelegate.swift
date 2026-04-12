@@ -25,17 +25,21 @@ import Cocoa
     // MARK: - Accessibility permission
 
     /// Request Accessibility permission (required for CGEventTap).
-    /// macOS shows a one-time system prompt; polls every second until granted.
+    /// Shows the system prompt exactly once, then polls silently until granted.
     private func requestAccessibilityAndStart() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        if AXIsProcessTrustedWithOptions(options) {
+        // Show the system prompt once — passing prompt:true repeatedly re-triggers the dialog
+        let promptOptions = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(promptOptions)
+        pollForAccessibility()
+    }
+
+    /// Silently re-check every second until Accessibility is granted, then start the tap.
+    private func pollForAccessibility() {
+        if AXIsProcessTrusted() {
             keyboardTap.start()
         } else {
-            // User has not granted yet — re-check after a short delay.
-            // The system prompt is already shown; this loop handles the case where
-            // the user grants permission in System Settings without relaunching the app.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.requestAccessibilityAndStart()
+                self?.pollForAccessibility()
             }
         }
     }
