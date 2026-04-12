@@ -10,13 +10,18 @@ struct SettingsView: View {
             // Pixel tab bar
             HStack(spacing: 0) {
                 ForEach(Array(tabs.enumerated()), id: \.offset) { i, label in
-                    Button(label) { selectedTab = i }
-                        .font(PixelTheme.pixelFont(size: 8))
-                        .foregroundColor(selectedTab == i ? PixelTheme.background : PixelTheme.text)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, PixelTheme.spacing)
-                        .background(selectedTab == i ? PixelTheme.accent : PixelTheme.surface)
-                        .overlay(Rectangle().stroke(PixelTheme.border, lineWidth: 1))
+                    Button {
+                        selectedTab = i
+                    } label: {
+                        Text(label)
+                            .font(PixelTheme.pixelFont(size: 8))
+                            .foregroundColor(selectedTab == i ? PixelTheme.background : PixelTheme.text)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, PixelTheme.spacing)
+                    }
+                    .buttonStyle(.plain)
+                    .background(selectedTab == i ? PixelTheme.accent : PixelTheme.surface)
+                    .overlay(Rectangle().stroke(PixelTheme.border, lineWidth: 1))
                 }
             }
 

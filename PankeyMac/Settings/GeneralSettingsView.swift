@@ -41,8 +41,8 @@ struct GeneralSettingsView: View {
                     .font(PixelTheme.pixelFont(size: 8))
                     .foregroundColor(PixelTheme.textDim)
                 HStack(spacing: PixelTheme.spacing) {
-                    Text(isRecordingHotkey ? "PRESS A KEY…" : hotkeyLabel)
-                        .font(.system(size: 11, design: .monospaced))
+                    Text(isRecordingHotkey ? "PRESS KEY..." : hotkeyLabel)
+                        .font(PixelTheme.pixelFont(size: 8))
                         .foregroundColor(isRecordingHotkey ? PixelTheme.accent : PixelTheme.text)
                         .frame(minWidth: 100)
                         .padding(.horizontal, PixelTheme.spacing)
@@ -122,12 +122,12 @@ enum HotkeyStore {
     static func displayLabel() -> String {
         let (kc, mods) = load()
         var parts: [String] = []
-        if mods.contains(.control) { parts.append("⌃") }
-        if mods.contains(.option)  { parts.append("⌥") }
-        if mods.contains(.shift)   { parts.append("⇧") }
-        if mods.contains(.command) { parts.append("⌘") }
+        if mods.contains(.control) { parts.append("^") }
+        if mods.contains(.option)  { parts.append("~") }
+        if mods.contains(.shift)   { parts.append("+") }
+        if mods.contains(.command) { parts.append("*") }
         parts.append(keyLabel(for: kc))
-        return parts.joined()
+        return parts.joined(separator: "")
     }
 
     private static func keyLabel(for keyCode: UInt16) -> String {
