@@ -1,6 +1,6 @@
 # Codebase Summary — Pankey Vietnamese IME
 
-**Last updated:** 2026-04-12 | **Phase:** 5 (Menu Bar & Settings UI Complete)
+**Last updated:** 2026-04-12 | **Phase:** 6 (Text Conversion Tool Complete)
 
 ---
 
@@ -29,7 +29,7 @@ Pankey/
 │   │   ├── SettingsView.swift              # Root tabbed container
 │   │   ├── GeneralSettingsView.swift       # VI/EN toggle, method picker, hotkey recorder
 │   │   ├── ExclusionListView.swift         # Per-app exclusion UI
-│   │   ├── ConvertToolView.swift           # Phase 6 placeholder
+│   │   ├── ConvertToolView.swift           # Phase 6: full text conversion UI
 │   │   └── PixelUI/                        # 8-bit pixel aesthetic components
 │   │       ├── PixelTheme.swift            # Color palette, typography, spacing
 │   │       ├── PixelButtonStyle.swift      # Primary/secondary/danger button styles
@@ -46,7 +46,7 @@ Pankey/
 
 ### PankeyCore (Swift Package)
 
-**Purpose:** Pure Swift Vietnamese composition engine, no platform dependencies.
+**Purpose:** Pure Swift Vietnamese composition engine and text conversion service, no platform dependencies.
 
 #### VietEngine.swift
 - **Responsibilities:**
@@ -85,6 +85,31 @@ Pankey/
 #### TelesEngine.swift & VniEngine.swift
 - Phonotactic rule sets for Telex vs VNI methods
 - Validator methods for valid syllable positions
+
+#### ConversionService.swift (Phase 6)
+- **Responsibilities:**
+  - Expose `ConversionFormat` public enum: Unicode, Telex, VNI
+  - Implement `convert(_:from:to:)` public entry point
+  - Implement conversions via word-by-word VietEngine processing:
+    - `telexToUnicode`: feed Telex chars through `VietEngine(method: .telex)`, flush at word boundaries
+    - `vniToUnicode`: feed VNI chars through `VietEngine(method: .vni)`, flush at word boundaries
+    - `unicodeToTelex`: decompose to NFD, reverse-map combining marks to Telex sequences (e.g., ơ→ow, tone marks→f/s/r/x/j)
+    - `unicodeToVNI`: placeholder (returns input unchanged, documented stretch goal)
+  - Helper `flushEngine(_:word:)`: process word through engine, reset state
+  - Helper `telexSequence(for:tone:diacritic:)`: builds Telex key sequence for a character with tone/diacritic
+
+- **Public API:**
+  ```swift
+  public enum ConversionFormat: String, CaseIterable {
+    case unicode = "Unicode"
+    case telex   = "Telex"
+    case vni     = "VNI"
+  }
+  
+  public struct ConversionService {
+    public static func convert(_ text: String, from: ConversionFormat, to: ConversionFormat) -> String
+  }
+  ```
 
 ---
 
@@ -274,8 +299,15 @@ Pankey/
   - Remove apps from list
   - Observe AppExclusionManager changes for live UI updates
 
-#### ConvertToolView.swift (NEW — Phase 5)
-- **Responsibilities:** Placeholder stub for Phase 6 text conversion feature
+#### ConvertToolView.swift (NEW — Phase 6)
+- **Responsibilities:**
+  - Full SwiftUI implementation of text conversion tool
+  - Format pickers (FROM / TO): Unicode, Telex, VNI
+  - Side-by-side INPUT / OUTPUT TextEditors with live preview
+  - PASTE & CONVERT button (reads from NSPasteboard.general)
+  - COPY RESULT button with 1.5s "COPIED!" feedback
+  - Integrates with ConversionService for Telex↔Unicode, VNI↔Unicode, Unicode→Telex conversion
+  - Uses PixelTheme for 8-bit pixel aesthetic throughout
 
 #### PixelUI/PixelTheme.swift (NEW — Phase 5)
 - **Provides:**
@@ -428,17 +460,18 @@ open ~/Library/Input\ Methods/PankeyMac.app
 - [x] Input method picker: Telex/VNI switching via menu and Settings
 - [x] Hotkey recorder: captures and displays hotkey, Escape cancels
 
-Pending (Phase 6+):
-- [ ] Text conversion tool UI
+Pending (Phase 7+):
 - [ ] Comprehensive unit & integration tests
+- [ ] Distribution & release (Phase 8, deferred pending Developer ID cert)
 
 ---
 
 ## Next Phase
 
-**Phase 6: Text Conversion Tool**
-- Placeholder ConvertToolView ready in Settings UI
-- Text conversion features (Telex overflow handling, etc.) deferred to v2
+**Phase 7: Unit & Integration Tests**
+- Comprehensive unit tests for VietEngine, ConversionService
+- Integration tests for IMK pipeline
+- Test coverage for all composition scenarios (Telex, VNI, Unicode)
 
 ---
 
@@ -451,7 +484,7 @@ Pending (Phase 6+):
 | 3 | IMK Integration | Complete | 2026-04-11 |
 | 4 | App Exclusion Feature | Complete | 2026-04-12 |
 | 5 | Menu Bar & Settings UI | Complete | 2026-04-12 |
-| 6 | Text Conversion Tool | Pending | TBD |
+| 6 | Text Conversion Tool | Complete | 2026-04-12 |
 | 7 | Unit & Integration Tests | Pending | TBD |
 | 8 | Distribution & Release | Deferred | (no Developer ID yet) |
 
