@@ -25,73 +25,231 @@ struct TonePlacementTests {
         return result.trimmingCharacters(in: .whitespaces)
     }
 
+    // MARK: - Original 3 reported bugs
+
+    @Test func bug1_dduocjw_produces_duoc() {
+        // The 'w' after coda 'c' should retroactively modify uo → ươ
+        #expect(compose("dduocjw") == "được")
+    }
+
+    @Test func bug2_hehe_stays_hehe() {
+        // Parser must NOT re-enter vowel mode after coda, so "hehe" stays "hehe"
+        #expect(compose("hehe") == "hehe")
+    }
+
+    @Test func bug3_phair_produces_phai() {
+        // For 'ai' diphthong without coda, tone goes on first vowel 'a'
+        #expect(compose("phair") == "phải")
+    }
+
+    // MARK: - Retroactive W at various positions
+
+    @Test func retroactiveW_dduowcj() {
+        // Standard path: ow pair for ơ, then j for nặng
+        #expect(compose("dduowcj") == "được")
+    }
+
+    @Test func retroactiveW_dduocwj() {
+        // w after coda, then j: both orderings should work
+        #expect(compose("dduocwj") == "được")
+    }
+
+    @Test func retroactiveW_thuowng() {
+        // uo → ươ via w between vowels
+        #expect(compose("thuowng") == "thương")
+    }
+
+    @Test func retroactiveW_thuongw() {
+        // w at end after coda: retroactively modifies uo → ươ
+        #expect(compose("thuongw") == "thương")
+    }
+
+    @Test func retroactiveW_nguowif() {
+        // ươi triphthong: tone on ơ
+        #expect(compose("nguowif") == "người")
+    }
+
+    @Test func retroactiveW_nuowcs() {
+        // nước: ươ diphthong + coda c + sắc
+        #expect(compose("nuowcs") == "nước")
+    }
+
+    @Test func retroactiveW_nuocws() {
+        // Same as above but w after coda
+        #expect(compose("nuocws") == "nước")
+    }
+
+    // MARK: - W with single vowels
+
+    @Test func singleW_uw() {
+        #expect(compose("uw") == "ư")
+    }
+
+    @Test func singleW_ow() {
+        #expect(compose("ow") == "ơ")
+    }
+
+    @Test func singleW_aw() {
+        #expect(compose("aw") == "ă")
+    }
+
+    @Test func singleW_tawm() {
+        // aw → ă for single vowel context
+        #expect(compose("tawm") == "tăm")
+    }
+
+    // MARK: - W toggle (undo)
+
+    @Test func wToggle_uww() {
+        // uw → ư, then ww undoes → u
+        #expect(compose("uww") == "u")
+    }
+
+    @Test func wToggle_aww() {
+        #expect(compose("aww") == "a")
+    }
+
+    // MARK: - W with multi-vowel patterns
+
+    @Test func multiW_tuaw_gives_tua_horn() {
+        // ua pattern: only u gets horn → ưa (like OpenKey's insertW)
+        #expect(compose("tuaw") == "tưa")
+    }
+
+    @Test func multiW_quaw_gives_breve() {
+        // qu is an onset cluster, so vowel is just 'a' → ă
+        #expect(compose("quaw") == "quă")
+    }
+
     // MARK: - Basic Telex words
 
     @Test func telexToi() {
-        // tooi: t + oo→ô + i → "tôi" (ngang, level 1 special vowel)
         #expect(compose("tooi") == "tôi")
     }
 
     @Test func telexViet() {
-        // vieest: vi + ee→ê + t + s(sắc) → "viết" (ê with sắc)
         #expect(compose("vieest") == "viết")
     }
 
     @Test func telexVietNam() {
-        // vieejt: vi + ee→ê + j(nặng) + t → "việt" (ê with nặng)
         #expect(compose("vieejt") == "việt")
     }
 
     @Test func telexKhong() {
-        // khoong: kh + oo→ô + ng, ngang tone (no tone key) → "không"
         #expect(compose("khoong") == "không")
     }
 
     @Test func telexDuoc() {
-        // dduowcj: dd→đ + u + ow→ơ + c + j(nặng) → "được"
-        // Requires ươ diphthong normalisation: u before ơ → ư
         #expect(compose("dduowcj") == "được")
     }
 
     @Test func telexNuoc() {
-        // nuowcs: n + u + ow→ơ + c + s(sắc) → "nước"
-        // Requires ươ diphthong normalisation: u before ơ → ư
         #expect(compose("nuowcs") == "nước")
     }
 
     // MARK: - Tone placement precedence
 
     @Test func level1SpecialVowelGetsTone() {
-        // huees: h + u + ee→ê + s(sắc) → "huế" (ê is special, gets tone)
         #expect(compose("huees") == "huế")
     }
 
     @Test func level2SingleVowelGetsTone() {
-        // maf: m + a + f(huyền) → "mà"
         #expect(compose("maf") == "mà")
     }
 
     @Test func level3DiphthongEndingInAMarksFirst() {
-        // For diphthong "ia" WITHOUT coda: Vietnamese places tone on 'i' (index 0).
-        // "ias": i + a + s(sắc) → level-3 rule: last=='a' → index 0 → 'i' gets sắc → "ía"
+        // "ia" without coda → tone on first vowel (i) → "ía"
         #expect(compose("ias") == "ía")
     }
 
     @Test func level3Triphthong() {
-        // "vườn": v + ươ + n + huyền. Correct Telex: uw→ư then ow→ơ = "vuwownf"
-        // (vuowow would create three vowels [u,ơ,ơ] instead of [ư,ơ])
         #expect(compose("vuwownf") == "vườn")
+    }
+
+    // MARK: - Comprehensive diphthong tone placement
+
+    @Test func diphthong_ai_no_coda() {
+        // ai without coda → tone on first (a) → phải
+        #expect(compose("phair") == "phải")
+    }
+
+    @Test func diphthong_oi_no_coda() {
+        // oi without coda → tone on first (o) → tối
+        // (But ô is special, so it gets priority — test with plain o)
+        #expect(compose("oir") == "ỏi")
+    }
+
+    @Test func diphthong_ui_no_coda() {
+        // ui without coda → tone on first (u)
+        #expect(compose("tuif") == "tùi")
+    }
+
+    @Test func diphthong_ao_no_coda() {
+        // ao without coda → tone on first (a)
+        #expect(compose("baof") == "bào")
+    }
+
+    @Test func diphthong_au_no_coda() {
+        // au without coda → tone on first (a)
+        #expect(compose("caus") == "cáu")
+    }
+
+    @Test func diphthong_oa_no_coda() {
+        // oa without coda → tone on SECOND (a) — different from ai/oi!
+        #expect(compose("hoaf") == "hoà")
+    }
+
+    @Test func diphthong_oa_with_coda() {
+        // oa with coda → tone on second (a) → toán
+        #expect(compose("toans") == "toán")
+    }
+
+    @Test func diphthong_ia_with_g_onset() {
+        // gia: gi is onset, vowel is just 'a' → tone on a
+        #expect(compose("giaf") == "già")
+    }
+
+    @Test func diphthong_ua_with_q_onset() {
+        // qua: qu is onset, vowel is just 'a' → tone on a
+        #expect(compose("quans") == "quán")
+    }
+
+    // MARK: - Special diphthongs iê, uô, ươ
+
+    @Test func specialDiphthong_ie_with_coda() {
+        // iê with coda → tone on ê (second)
+        #expect(compose("vieest") == "viết")
+    }
+
+    @Test func specialDiphthong_uo_with_coda() {
+        // uô with coda → tone on ô (second)
+        #expect(compose("muoons") == "muốn")
+    }
+
+    @Test func specialDiphthong_uo_no_coda() {
+        // ươ without coda → tone on ư (first)
+        #expect(compose("muwa") == "mưa")
+    }
+
+    // MARK: - Triphthongs
+
+    @Test func triphthong_uoi_tone_middle() {
+        // tuổi: tone on ô (middle vowel for triphthong)
+        #expect(compose("tuooir") == "tuổi")
+    }
+
+    @Test func triphthong_oai_tone_middle() {
+        // ngoài: tone on a (middle vowel)
+        #expect(compose("ngoaif") == "ngoài")
     }
 
     // MARK: - VNI
 
     @Test func vniToi() {
-        // to6i: t + o + 6(→ô) + i → "tôi"
         #expect(compose("to6i", method: .vni) == "tôi")
     }
 
     @Test func vniKhong() {
-        // kho6ng: kh + o + 6(→ô) + ng, ngang → "không"
         #expect(compose("kho6ng", method: .vni) == "không")
     }
 
@@ -104,10 +262,8 @@ struct TonePlacementTests {
         _ = engine.handleKey("o")  // oo → ô applied, buffer = "tô"
         let result = engine.handleKey("\u{08}")  // backspace
         if case .composing(let preview) = result {
-            // ô should be undone; buffer back to "t"
             #expect(!preview.contains("ô"), "Backspace should undo ô substitution")
         } else if case .commit(let text, _) = result {
-            // Empty commit on reduced buffer is also acceptable
             #expect(text == "" || !text.contains("ô"))
         } else {
             Issue.record("Expected .composing after backspace mid-composition, got \(result)")
@@ -125,9 +281,6 @@ struct TonePlacementTests {
     // MARK: - False-positive prevention
 
     @Test func englishWordDoesNotProduceBothGraveAndAcute() {
-        // "sofas": 's' appended (no vowel yet), 'o' vowel, 'f'→tone1(huyền),
-        // 'a' appended, 's'→tone2(sắc) — the final tone wins.
-        // The assertion ensures we don't simultaneously see both ò and á (two separate marks).
         let result = compose("sofas")
         #expect(!(result.contains("ò") && result.contains("á")),
                 "English 'sofas' should not garble with both grave and acute: got '\(result)'")

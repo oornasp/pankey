@@ -123,13 +123,13 @@ public struct VietEngine {
             return
         }
 
-        // Normalise "u" before "ơ" → "ư" (ươ diphthong typed as u + ow shorthand)
+        // Safety normalisation: "u" before "ơ" → "ư" (ươ diphthong fallback)
         var vowels = rawVowels
         for i in 0..<vowels.count - 1 where vowels[i] == "u" && vowels[i + 1] == "ơ" {
             vowels[i] = "ư"
         }
 
-        let toneIdx = tonePlacementIndex(in: vowels)
+        let toneIdx = tonePlacementIndex(in: vowels, onset: onset, coda: coda)
         var result = onset
         for (i, vowel) in vowels.enumerated() {
             let tone = (i == toneIdx) ? state.currentTone : 0
@@ -140,60 +140,165 @@ public struct VietEngine {
         state.unicodeBuffer = result.precomposedStringWithCanonicalMapping
     }
 
-    // MARK: - Tone placement (3-level precedence)
+    // MARK: - Tone placement (modern Vietnamese orthography)
 
-    /// Returns the index into `vowels` array where the tone mark should go.
+    /// Returns the index into `vowels` array where the tone mark goes.
     ///
-    /// Precedence:
-    /// 0. ươ diphthong special case: ư before ơ → tone on ơ
-    /// 1. Special diacritic vowels: ă â ê ô ơ ư
-    /// 2. Single vowel: always index 0
-    /// 3. Diphthong/triphthong: center vowel (last for diphthong, middle for triphthong)
-    private func tonePlacementIndex(in vowels: [Character]) -> Int {
-        // Level 0: ươ diphthong — ư before ơ → tone goes on ơ
-        if let uIdx = vowels.firstIndex(of: "ư"),
-           let oIdx = vowels.firstIndex(of: "ơ"),
-           uIdx < oIdx {
-            return oIdx
+    /// Implements modern Vietnamese orthography rules, matching OpenKey's
+    /// `handleModernMark()` / `insertMark()` logic:
+    ///
+    /// 1. Special diphthongs (iê, yê, uô, ươ): if followed by more elements
+    ///    (coda consonant or more vowels), tone on the special vowel (2nd element);
+    ///    otherwise tone on the 1st element.
+    /// 2. Special diacritic vowel (ă, â, ê, ô, ơ, ư): always receives the tone.
+    /// 3. Single vowel: always index 0.
+    /// 4. Diphthongs without coda:
+    ///    - ai, ao, au, ay, eo, iu, oi, ui → tone on 1st vowel
+    ///    - ia/ya (without 'g' onset) → 1st; with 'g' → 2nd
+    ///    - ua (without 'q' onset) → 1st; with 'q' → 2nd
+    ///    - oa, oe, ue → tone on 2nd vowel
+    /// 5. Diphthongs with coda: tone on 2nd vowel (closer to nucleus+coda).
+    /// 6. Triphthongs: tone on middle vowel.
+    private func tonePlacementIndex(
+        in vowels: [Character], onset: String, coda: String
+    ) -> Int {
+        let count = vowels.count
+        if count <= 1 { return 0 }
+
+        let hasCoda = !coda.isEmpty
+
+        // --- Rule 1: Special diphthongs iê, yê, uô, ươ ---
+        // These have unique behaviour: with following elements → tone on 2nd (ê/ô/ơ);
+        // without → tone on 1st (i/y/u/ư).
+        if count >= 2 {
+            let v0 = vowels[0], v1 = vowels[1]
+            let hasFollowing = count > 2 || hasCoda
+
+            if v0 == "ư" && v1 == "ơ" {
+                return hasFollowing ? 1 : 0
+            }
+            if (v0 == "i" || v0 == "y") && v1 == "ê" {
+                return hasFollowing ? 1 : 0
+            }
+            if v0 == "u" && v1 == "ô" {
+                return hasFollowing ? 1 : 0
+            }
         }
-        // Level 1: diacritic vowel takes the mark
+
+        // --- Rule 2: Special diacritic vowel takes the tone ---
         for (i, v) in vowels.enumerated() {
             if CharacterTable.specialVowels.contains(v) { return i }
         }
-        // Level 2: single vowel
-        if vowels.count == 1 { return 0 }
-        // Level 3: diphthong/triphthong center
-        //   diphthong ending in 'a' (e.g. "ia", "ua"): mark the first vowel
-        if vowels.last == "a" { return 0 }
-        //   triphthong: mark center (index count-2)
-        if vowels.count > 2 { return vowels.count - 2 }
-        //   other diphthong: mark the last vowel
-        return vowels.count - 1
+
+        // --- Rule 3: Single vowel ---
+        if count == 1 { return 0 }
+
+        // --- Rule 4–5: Diphthong rules ---
+        if count == 2 {
+            let v0 = vowels[0], v1 = vowels[1]
+
+            if hasCoda {
+                // With coda consonant: tone on 2nd vowel (closer to coda)
+                // This covers: oán, oét, oan, oen, uất, etc.
+                return 1
+            }
+
+            // Without coda (open syllable):
+
+            // Tone on FIRST vowel for these patterns:
+            // ai, ao, au, ay, eo, iu, oi, ui
+            if v0 == "a" && (v1 == "i" || v1 == "o" || v1 == "u" || v1 == "y") { return 0 }
+            if v0 == "e" && v1 == "o" { return 0 }
+            if v0 == "i" && v1 == "u" { return 0 }
+            if v0 == "o" && v1 == "i" { return 0 }
+            if v0 == "u" && v1 == "i" { return 0 }
+
+            // ia / ya: depends on onset (gi cluster)
+            if (v0 == "i" || v0 == "y") && v1 == "a" {
+                return onset.last == "g" ? 1 : 0
+            }
+            // io: depends on onset (gi cluster)
+            if v0 == "i" && v1 == "o" {
+                return onset.last == "g" ? 1 : 0
+            }
+            // ua: depends on onset (qu cluster)
+            if v0 == "u" && v1 == "a" {
+                return onset.last == "q" ? 1 : 0
+            }
+
+            // Tone on SECOND vowel for these patterns:
+            // oa, oe, ue
+            if v0 == "o" && (v1 == "a" || v1 == "e") { return 1 }
+            if v0 == "u" && v1 == "e" { return 1 }
+
+            // Default diphthong: last vowel
+            return count - 1
+        }
+
+        // --- Rule 6: Triphthong → middle vowel ---
+        if count >= 3 {
+            return 1
+        }
+
+        return count - 1
     }
 
     // MARK: - Syllable parsing
 
     /// Split `buffer` into (onset consonants, vowel sequence, coda consonants).
     ///
-    /// Algorithm: scan left-to-right; consonants before first vowel → onset,
-    /// contiguous vowels → vowel cluster, consonants after last vowel → coda.
+    /// Handles Vietnamese-specific consonant clusters:
+    ///   - `qu`: 'u' after 'q' is part of onset (not a vowel)
+    ///   - `gi`: 'i' after 'g' is part of onset when followed by another vowel
+    ///
+    /// IMPORTANT: Once coda mode is entered (first consonant after vowels),
+    /// all subsequent characters go to coda — we do NOT re-enter vowel
+    /// collection. This prevents "hehe" from being parsed as h+[e,e]+h.
     private func parseSyllable(_ buffer: String) -> (String, [Character], String) {
+        let chars = Array(buffer)
+        let vowelKeys = Set(CharacterTable.toneMap.keys)
+
         var onset = ""
         var vowels: [Character] = []
         var coda = ""
-        var inVowels = false
 
-        for ch in buffer {
-            let isV = CharacterTable.toneMap.keys.contains(ch)
-            if isV {
-                inVowels = true
-                vowels.append(ch)
-            } else if !inVowels {
-                onset.append(ch)
-            } else {
-                coda.append(ch)
+        var i = 0
+
+        // Phase 1: Onset consonants
+        while i < chars.count {
+            let ch = chars[i]
+            if vowelKeys.contains(ch) {
+                // qu cluster: 'u' after 'q' stays in onset
+                if ch == "u" && onset.hasSuffix("q") {
+                    onset.append(ch)
+                    i += 1
+                    continue
+                }
+                // gi cluster: 'i' after 'g' stays in onset when followed by another vowel
+                if ch == "i" && onset.hasSuffix("g")
+                    && i + 1 < chars.count && vowelKeys.contains(chars[i + 1]) {
+                    onset.append(ch)
+                    i += 1
+                    continue
+                }
+                break  // First real vowel found → exit onset phase
             }
+            onset.append(ch)
+            i += 1
         }
+
+        // Phase 2: Vowel nucleus (contiguous vowels)
+        while i < chars.count && vowelKeys.contains(chars[i]) {
+            vowels.append(chars[i])
+            i += 1
+        }
+
+        // Phase 3: Coda (everything remaining — NO re-entering vowel mode)
+        while i < chars.count {
+            coda.append(chars[i])
+            i += 1
+        }
+
         return (onset, vowels, coda)
     }
 

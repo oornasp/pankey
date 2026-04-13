@@ -45,13 +45,14 @@ struct CharacterTableTests {
     // MARK: - Telex vowel substitutions
 
     @Test func telexVowelSubstitutionsComplete() {
+        // aa/ee/oo/dd are pair substitutions.
+        // aw/uw/ow are NOT here — 'w' is handled retroactively by
+        // TelexProcessor.handleW() to support typing w at any word position.
         #expect(CharacterTable.telexVowelSubstitutions["aa"] == "â")
-        #expect(CharacterTable.telexVowelSubstitutions["aw"] == "ă")
         #expect(CharacterTable.telexVowelSubstitutions["ee"] == "ê")
         #expect(CharacterTable.telexVowelSubstitutions["oo"] == "ô")
-        #expect(CharacterTable.telexVowelSubstitutions["ow"] == "ơ")
-        #expect(CharacterTable.telexVowelSubstitutions["uw"] == "ư")
         #expect(CharacterTable.telexVowelSubstitutions["dd"] == "đ")
+        #expect(CharacterTable.telexVowelSubstitutions.count == 4)
     }
 
     // MARK: - Tone key maps

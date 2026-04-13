@@ -22,14 +22,13 @@ public enum CharacterTable {
 
     // MARK: - Telex vowel substitutions (double-key)
 
-    /// Double-key sequences that produce a diacritic vowel or đ
+    /// Double-key sequences that produce a diacritic vowel or đ.
+    /// Note: aw/uw/ow are NOT here — 'w' is handled retroactively
+    /// by TelexProcessor.handleW() to support typing w at any position.
     public static let telexVowelSubstitutions: [String: Character] = [
         "aa": "â",
-        "aw": "ă",
         "ee": "ê",
         "oo": "ô",
-        "ow": "ơ",
-        "uw": "ư",
         "dd": "đ",
     ]
 
