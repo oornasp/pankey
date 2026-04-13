@@ -35,6 +35,9 @@ Pankey.xcodeproj/project.xcworkspace/xcuserdata/
 # Project-specific
 # ========================
 repomix-output.xml
+repomix-output.md
+.repomixignore
+GEMINI.md
 .serena/cache
 plans/**/*
 !plans/templates/*
@@ -52,6 +55,7 @@ ck.md
 
 # OpenCode IDE
 .opencode/
+.agent/
 
 # Git worktrees (local dev only)
 worktrees/
